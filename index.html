@@ -27,22 +27,19 @@
     <p id="bootMsg">กำลังเปิด…</p>
   </div>
 
-  <!-- เข้าสู่ระบบ (เฉพาะตอนต่อ Firebase) -->
+  <!-- ใส่รหัสร้าน (โผล่เฉพาะเมื่อร้านตั้งรหัสไว้ และเครื่องนี้ยังไม่เคยใส่) -->
   <section id="login" class="center-page" hidden>
-    <form id="loginForm" class="login-card card" autocomplete="on">
+    <form id="loginForm" class="login-card card" autocomplete="off">
       <div class="login-brand">
         <img src="icons/icon.svg" alt="" width="44" height="44">
-        <div><h1>จดออเดอร์</h1><p class="muted">สำหรับพนักงานร้าน</p></div>
+        <div><h1>จดขาย</h1><p class="muted">สำหรับพนักงานร้าน</p></div>
       </div>
-      <label class="field"><span>อีเมล</span>
-        <input id="loginEmail" type="email" inputmode="email" autocomplete="username" required>
+      <label class="field"><span>รหัสร้าน</span>
+        <input id="loginCode" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" required>
       </label>
-      <label class="field"><span>รหัสผ่าน</span>
-        <input id="loginPass" type="password" autocomplete="current-password" required minlength="6">
-      </label>
-      <button class="btn primary lg wide" id="loginBtn" type="submit">เข้าสู่ระบบ</button>
+      <button class="btn primary lg wide" id="loginBtn" type="submit">เข้าใช้งาน</button>
       <p class="login-err" id="loginErr" role="alert"></p>
-      <p class="hint-text">เข้าครั้งเดียว เครื่องนี้จะจำไว้ ไม่ต้องเข้าซ้ำทุกวัน</p>
+      <p class="hint-text">ใส่ครั้งเดียว เครื่องนี้จะจำไว้ รหัสร้านขอได้จากเจ้าของร้าน</p>
     </form>
   </section>
 

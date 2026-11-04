@@ -50,8 +50,12 @@ export function useShop(id) {
 // ----- บัญชีผู้ใช้ -----
 /** cb(user | null) — user = { uid, email, anonymous } */
 export const onAuth = (cb) => be.onAuth(cb);
-export const login = (email, password) => be.login(email, password);
+export const login = (code) => be.login(code);
 export const logout = () => be.logout();
+// รหัสร้าน (ไม่บังคับ): ยังไม่ตั้ง = เปิดลิงก์แล้วเข้าได้เลย
+export const watchAccess = (cb) => be.watchAccess(cb);
+export const setAccessCode = (code) => be.setAccessCode(code);
+export const clearAccessCode = () => be.clearAccessCode();
 
 // ----- สถานะซิงก์ / ข้อผิดพลาด -----
 /** cb({ online, pending }) — pending = จำนวนเอกสารที่ยังส่งไม่ถึงเซิร์ฟเวอร์ */

@@ -7,7 +7,7 @@
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
 import {
-  getAuth, connectAuthEmulator, onAuthStateChanged, signInWithEmailAndPassword, signInAnonymously, signOut,
+  getAuth, connectAuthEmulator, onAuthStateChanged, signInAnonymously,
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import {
   initializeFirestore, persistentLocalCache, persistentMultipleTabManager, connectFirestoreEmulator,
@@ -94,54 +94,95 @@ export function useShop(id) { shop = id; }
 export function onSync(cb) { syncCb = cb; emitSync(); }
 export function onError(cb) { errCb = cb; }
 
-// ----- บัญชี -----
-// ระหว่าง login() กำลังเช็กรายชื่อพนักงาน ยังไม่ส่งผู้ใช้ให้แอป (กันหน้าร้านโผล่แวบแล้วเด้งออก)
-let holdAuth = false;
+// ----- การเข้าใช้งาน -----
+// แอปร้านไม่มีอีเมล/รหัสผ่าน: เปิดลิงก์แล้วเข้าเลย (ล็อกอินแบบไม่ระบุตัวตนให้เองเบื้องหลัง)
+// ถ้าร้านตั้ง "รหัสร้าน" ไว้ (config/access) เครื่องที่ยังไม่เคยใส่รหัสจะเห็นหน้ากรอกรหัส 1 ครั้ง แล้วเครื่องนั้นจำไว้
 let authCb = null;
-const userInfo = (u) => (u ? { uid: u.uid, email: u.email || '', anonymous: u.isAnonymous } : null);
+const userInfo = (u) => (u ? { uid: u.uid, email: '', anonymous: u.isAnonymous } : null);
+const withTimeout = (p, ms, msg) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error(msg)), ms))]);
+
+// เครื่องนี้เป็นพนักงานไหม: ลองอ่าน config/probe — กฎอนุญาตเฉพาะพนักงาน (หรือทุกคนถ้ายังไม่ตั้งรหัส)
+async function checkAccess() {
+  try {
+    await getDoc(doc(db, 'config', 'probe'));
+    return true;
+  } catch (e) {
+    if (String(e?.code || '').includes('permission-denied')) return false;
+    return true; // ออฟไลน์/ติดต่อไม่ได้: ใช้ข้อมูลในเครื่องต่อไปก่อน (เซิร์ฟเวอร์ยังเช็กกฎทุกครั้งที่ส่งข้อมูล)
+  }
+}
 
 export function onAuth(cb) {
   authCb = cb;
-  return onAuthStateChanged(auth, (u) => {
-    if (holdAuth) return;
-    if (!u && role === 'customer') {
-      // นักเรียน: ไม่ต้องกรอกอะไร ล็อกอินแบบไม่ระบุตัวตนให้เลย
+  return onAuthStateChanged(auth, async (u) => {
+    if (!u) {
       signInAnonymously(auth).catch((e) => {
         console.error(e);
         errCb(authError(e));
+        if (role === 'staff') cb(null); // ขึ้นหน้ากรอกรหัส (ลองใหม่ได้เมื่อมีเน็ต)
       });
       return;
     }
-    // แอปร้าน: บัญชีไม่ระบุตัวตนใช้ไม่ได้ (กันนักเรียนเปิดหน้าร้าน)
-    if (u && role === 'staff' && u.isAnonymous) { signOut(auth); return; }
-    cb(userInfo(u));
+    if (role === 'customer') { cb(userInfo(u)); return; }
+    cb((await checkAccess()) ? userInfo(u) : null);
   });
 }
-export async function login(email, password) {
-  holdAuth = true;
-  let user;
+
+export async function login(code) {
+  code = String(code || '').trim();
+  if (!code) throw new Error('ใส่รหัสร้านก่อน');
   try {
-    user = (await signInWithEmailAndPassword(auth, email.trim(), password)).user;
+    if (!auth.currentUser) await withTimeout(signInAnonymously(auth), 15000, 'ไม่มีอินเทอร์เน็ต — เข้าครั้งแรกต้องต่อเน็ต');
   } catch (e) {
-    holdAuth = false;
-    throw new Error(authError(e));
+    throw new Error(e?.code ? authError(e) : e.message);
   }
-  // ต้องอยู่ในรายชื่อ staff/{อีเมล} (กฎ Firestore เช็กอีกชั้น) — เช็กไม่ได้เพราะเน็ตหลุด ก็ให้เข้าไปก่อน
-  let listed = true;
   try {
-    listed = (await getDoc(doc(db, 'staff', (user.email || '').toLowerCase()))).exists();
+    await withTimeout(setDoc(doc(db, 'staff', auth.currentUser.uid), { code, at: serverTimestamp() }), 15000, 'ไม่มีอินเทอร์เน็ต — เข้าครั้งแรกต้องต่อเน็ต');
   } catch (e) {
-    if (String(e?.code || '').includes('permission-denied')) listed = false;
+    if (String(e?.code || '').includes('permission-denied')) throw new Error('รหัสร้านไม่ถูกต้อง');
+    throw new Error(e?.code ? thaiError(e) : e.message);
   }
-  if (!listed) {
-    await signOut(auth).catch(() => {});
-    holdAuth = false;
-    throw new Error(`บัญชี ${user.email} ยังไม่อยู่ในรายชื่อพนักงานร้าน — เจ้าของร้านเพิ่มได้ใน Firebase console › Firestore › staff`);
-  }
-  holdAuth = false;
+  if (!(await checkAccess())) throw new Error('รหัสร้านไม่ถูกต้อง');
   authCb?.(userInfo(auth.currentUser));
 }
-export function logout() { return signOut(auth); }
+
+// ออกจากเครื่องนี้ (ใช้ได้เมื่อร้านตั้งรหัสไว้): ลบสิทธิ์ของเครื่องนี้ ต้องใส่รหัสใหม่ถึงเข้าได้
+export async function logout() {
+  const u = auth.currentUser;
+  try { if (u) await withTimeout(deleteDoc(doc(db, 'staff', u.uid)), 8000, 'timeout'); } catch (e) { console.warn('logout', e); }
+  authCb?.(null);
+}
+
+// ----- รหัสร้าน -----
+export function watchAccess(cb) {
+  return onSnapshot(doc(db, 'config', 'access'), (snap) => cb(snap.exists() ? snap.data().code : null), (e) => {
+    console.warn('access', e);
+  });
+}
+// ตั้ง/เปลี่ยนรหัส: เครื่องนี้ยังเข้าได้ต่อ ส่วนเครื่องอื่นต้องใส่รหัสใหม่
+export async function setAccessCode(code) {
+  code = String(code || '').trim();
+  if (code.length < 4) throw new Error('รหัสร้านต้องยาวอย่างน้อย 4 ตัว');
+  if (code.length > 40) throw new Error('รหัสร้านยาวเกินไป');
+  const uid = auth.currentUser?.uid;
+  if (!uid) throw new Error('ยังไม่ได้เข้าสู่ระบบ');
+  const b = writeBatch(db);
+  b.set(doc(db, 'config', 'access'), { code, at: serverTimestamp() });
+  b.set(doc(db, 'staff', uid), { code, at: serverTimestamp() });
+  try {
+    await withTimeout(b.commit(), 15000, 'ไม่มีอินเทอร์เน็ต — ตั้งรหัสต้องต่อเน็ต');
+  } catch (e) {
+    throw new Error(e?.code ? thaiError(e) : e.message);
+  }
+}
+// เอารหัสออก: กลับไปเป็นแบบเปิดลิงก์แล้วเข้าได้เลย
+export async function clearAccessCode() {
+  try {
+    await withTimeout(deleteDoc(doc(db, 'config', 'access')), 15000, 'ไม่มีอินเทอร์เน็ต — ต้องต่อเน็ต');
+  } catch (e) {
+    throw new Error(e?.code ? thaiError(e) : e.message);
+  }
+}
 
 // ----- ตั้งค่าร้าน -----
 export function watchShop(cb) {

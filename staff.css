@@ -598,3 +598,7 @@ code { font-size: 13px; background: var(--soft); padding: 1px 6px; border-radius
   .mname { font-size: 16.5px; }
   .tabbar { grid-template-columns: repeat(3, 160px); justify-content: center; }
 }
+
+/* รหัสร้าน (ตั้งค่า → ความปลอดภัย) */
+.code-chip { display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border-radius: var(--r-sm); background: var(--soft); border: 1px solid var(--line); font-weight: 700; font-size: 18px; letter-spacing: .14em; }
+.warn-text { color: var(--warn); font-weight: 600; font-size: 14px; }

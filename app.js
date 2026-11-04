@@ -7,7 +7,7 @@ import { SHOPS, shopById, seedFor, presetGroups, OPTION_PRESETS } from './shops.
 import { injectSprite, icon } from './icons.js';
 import { qrSVG } from './qr.js';
 
-const APP_VERSION = '4.2.0';
+const APP_VERSION = '4.3.0';
 
 // ---------- ตัวช่วยเล็กๆ ----------
 const $ = (s, r = document) => r.querySelector(s);
@@ -46,6 +46,8 @@ const S = {
   seeded: false,
   toastAction: null,
   seenQr: null,          // id ออเดอร์ QR ที่เห็นแล้ว (ไว้รู้ว่าอันไหนเพิ่งเข้ามา)
+  access: undefined,      // รหัสร้าน: undefined = ยังโหลดไม่เสร็จ, null = ไม่ได้ตั้ง (เปิดลิงก์เข้าได้เลย), string = ตั้งไว้
+  showCode: false,
   seenClaim: null,
   fresh: new Set(),
 };
@@ -179,6 +181,12 @@ function startSession() {
     S.menuLoaded = true;
     renderAll();
   }));
+  if (S.mode !== 'demo') {
+    unsubs.push(data.watchAccess((code) => {
+      S.access = code;
+      if (S.screen === 'settings') renderSettings();
+    }));
+  }
   subscribeToday();
 }
 function subscribeToday() {
@@ -1213,6 +1221,27 @@ function studentUrl() {
   return u.href;
 }
 
+// การ์ด "รหัสร้าน" (ไม่บังคับ): ยังไม่ตั้ง = ใครเปิดลิงก์ก็เข้าแอปร้านได้ (แบบ MUKRATA)
+function accessCard() {
+  if (S.access === undefined) return '<p class="muted">กำลังโหลด…</p>';
+  const has = typeof S.access === 'string';
+  const status = has
+    ? `<p>ตอนนี้ต้องใส่ <b>รหัสร้าน</b> 1 ครั้งต่อเครื่อง (เครื่องนี้ใส่แล้ว)</p>
+       <div class="row-btns"><span class="code-chip tnum">${S.showCode ? esc(S.access) : '••••••'}</span>
+         <button class="btn sm" type="button" data-act="access-show">${S.showCode ? 'ซ่อน' : 'ดูรหัส'}</button></div>`
+    : `<p>ตอนนี้ <b>เปิดลิงก์แล้วเข้าใช้ได้เลย</b> ไม่ต้องใส่รหัส${qrOn()
+      ? '<br><span class="warn-text">ร้านนี้เปิดให้นักเรียนสแกนสั่งเอง — คนที่รู้วิธีจะเปิดดูยอดขายได้ แนะนำให้ตั้งรหัสร้าน</span>' : ''}</p>`;
+  return `${status}
+    <label class="field"><span>${has ? 'เปลี่ยนรหัสร้านเป็น' : 'ตั้งรหัสร้าน (อย่างน้อย 4 ตัว)'}</span>
+      <input id="accessInput" type="text" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="เช่น เลข 6 หลัก"></label>
+    <div class="row-btns"><button class="btn primary" type="button" data-act="access-set">${has ? 'เปลี่ยนรหัส' : 'ตั้งรหัส'}</button></div>
+    ${has ? `<p class="hint-text">เปลี่ยนรหัสแล้ว เครื่องอื่นต้องใส่รหัสใหม่ · เครื่องนี้ใช้ต่อได้เลย</p>
+      <div class="row-btns">
+        ${confirmBtn('access-clear', 'เอารหัสออก (กลับไปเข้าได้เลย)', 'แตะอีกครั้งเพื่อเอาออก', '', 'access-clear')}
+        ${confirmBtn('access-leave', 'ออกจากเครื่องนี้', 'แตะอีกครั้งเพื่อออก', '', 'access-leave')}
+      </div>` : ''}`;
+}
+
 function renderSettings() {
   const el = $('#scr-settings');
   if (isTyping(el)) return;
@@ -1294,13 +1323,12 @@ function renderSettings() {
     </section>
 
     <section class="set-group">
-      <h2 class="group-h">บัญชี</h2>
+      <h2 class="group-h">${S.mode === 'demo' ? 'ข้อมูลทดลอง' : 'ความปลอดภัย'}</h2>
       <div class="card form">
         ${S.mode === 'demo'
           ? `<p>โหมดทดลอง: ข้อมูลอยู่ในเบราว์เซอร์เครื่องนี้เท่านั้น ใส่ค่าใน <code>firebase-config.js</code> เพื่อใช้จริงและซิงก์ข้ามเครื่อง</p>
              <div class="row-btns">${confirmBtn('demo-reset', `${icon('trash')}ล้างข้อมูลทดลองของร้านนี้`, 'แตะอีกครั้งเพื่อล้าง', 'danger', 'demo-reset')}</div>`
-          : `<p>เข้าสู่ระบบเป็น <b>${esc(S.user?.email)}</b></p>
-             <div class="row-btns">${confirmBtn('logout', `${icon('logout')}ออกจากระบบ`, 'แตะอีกครั้งเพื่อออก', '', 'logout')}</div>`}
+          : accessCard()}
       </div>
     </section>
     <p class="ver tnum">เวอร์ชัน ${APP_VERSION} · ${S.mode === 'demo' ? 'โหมดทดลอง' : 'Firebase: ' + esc(data.projectId)} · ร้าน ${esc(S.shop)}</p>
@@ -1658,7 +1686,22 @@ const ACTIONS = {
     if ((+g.def || 0) >= g.choices.length) g.def = 0;
     renderSettings();
   },
-  logout: () => { if (confirmTap('logout')) data.logout(); },
+  'access-show': () => { S.showCode = !S.showCode; renderSettings(); },
+  'access-set': async () => {
+    const v = ($('#accessInput')?.value || '').trim();
+    if (v.length < 4) { toast('รหัสร้านต้องยาวอย่างน้อย 4 ตัว', 'bad'); return; }
+    try {
+      await data.setAccessCode(v);
+      S.showCode = false;
+      $('#accessInput').value = '';
+      toast('ตั้งรหัสร้านแล้ว · เครื่องอื่นต้องใส่รหัสนี้');
+    } catch (e) { toast(e.message, 'bad'); }
+  },
+  'access-clear': async () => {
+    if (!confirmTap('access-clear')) return;
+    try { await data.clearAccessCode(); S.showCode = false; toast('เอารหัสออกแล้ว · เปิดลิงก์เข้าได้เลย'); } catch (e) { toast(e.message, 'bad'); }
+  },
+  'access-leave': () => { if (confirmTap('access-leave')) data.logout(); },
   'demo-reset': () => {
     if (!confirmTap('demo-reset')) return;
     data.resetDemo();
@@ -1726,16 +1769,16 @@ function bindEvents() {
     const btn = $('#loginBtn');
     const err = $('#loginErr');
     btn.disabled = true;
-    btn.textContent = 'กำลังเข้าสู่ระบบ…';
+    btn.textContent = 'กำลังเช็กรหัส…';
     err.textContent = '';
     try {
-      await data.login($('#loginEmail').value, $('#loginPass').value);
-      $('#loginPass').value = '';
+      await data.login($('#loginCode').value);
+      $('#loginCode').value = '';
     } catch (er) {
       err.textContent = er.message;
     } finally {
       btn.disabled = false;
-      btn.textContent = 'เข้าสู่ระบบ';
+      btn.textContent = 'เข้าใช้งาน';
     }
   });
 

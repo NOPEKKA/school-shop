@@ -58,6 +58,9 @@ function customerUid() {
 }
 export async function login() {}
 export function logout() {}
+export function watchAccess(cb) { setTimeout(() => cb(null), 0); return () => {}; }
+export async function setAccessCode() {}
+export async function clearAccessCode() {}
 
 // ----- ตั้งค่าร้าน -----
 export function watchShop(cb) {

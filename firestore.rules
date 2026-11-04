@@ -1,8 +1,10 @@
 rules_version = '2';
 
 // กฎ Firestore ของระบบสั่งอาหาร (หลายร้าน)
-// - พนักงานร้าน = ล็อกอินด้วยอีเมล/รหัสผ่าน และอีเมลอยู่ในรายชื่อ staff/{อีเมล}: อ่าน/เขียนข้อมูลร้านได้ทั้งหมด
-//   (ใครก็สมัครบัญชีอีเมลเองผ่าน API ได้ จึงต้องมีรายชื่อนี้ — เพิ่ม/ลบได้ใน Firebase console เท่านั้น)
+// - พนักงานร้าน: เปิดลิงก์แล้วเข้าได้เลย (ไม่มีอีเมล/รหัสผ่าน) แบบเดียวกับ MUKRATA
+//   ถ้าอยากกันคนอื่น ตั้ง "รหัสร้าน" ในแอป (ตั้งค่า → ความปลอดภัย) → เครื่องที่ใส่รหัสถูก 1 ครั้งถึงเป็นพนักงาน
+//   (รหัสเก็บที่ config/access  เครื่องที่ใส่แล้วเก็บเป็น staff/{uid})
+//   ยังไม่ตั้งรหัส = ใครก็ตามที่เปิดลิงก์ (รวมนักเรียนที่รู้วิธี) อ่าน/เขียนข้อมูลร้านได้
 // - นักเรียน = ผู้ใช้ไม่ระบุตัวตน (Anonymous): อ่านชื่อร้าน/เมนูได้, สร้างออเดอร์ QR ได้, อ่านได้เฉพาะออเดอร์ของตัวเอง,
 //   แก้ออเดอร์ตัวเองได้อย่างเดียวคือกด "ฉันโอนแล้ว"
 service cloud.firestore {
@@ -11,18 +13,35 @@ service cloud.firestore {
     function signedIn() {
       return request.auth != null;
     }
+    function accessPath() {
+      return /databases/$(database)/documents/config/access;
+    }
     function staff() {
       return request.auth != null
-        && request.auth.token.firebase.sign_in_provider == 'password'
-        && request.auth.token.email is string
-        && exists(/databases/$(database)/documents/staff/$(request.auth.token.email.lower()));
+        && (!exists(accessPath())
+            || (exists(/databases/$(database)/documents/staff/$(request.auth.uid))
+                && get(/databases/$(database)/documents/staff/$(request.auth.uid)).data.code == get(accessPath()).data.code));
     }
 
-    // รายชื่อพนักงาน: id ของเอกสาร = อีเมล (ตัวเล็ก) — แอปเช็กได้แค่ของตัวเอง แก้จากแอปไม่ได้
-    match /staff/{email} {
-      allow get: if request.auth != null && request.auth.token.email is string
-        && request.auth.token.email.lower() == email;
-      allow list, write: if false;
+    // เครื่องที่ใส่รหัสร้านถูกแล้ว: สร้างเอกสาร staff/{uid ของเครื่องเอง} ได้เมื่อรหัสตรงกับ config/access
+    match /staff/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list: if false;
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['code', 'at'])
+        && request.resource.data.code is string
+        && request.resource.data.code == getAfter(accessPath()).data.code;
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // รหัสร้าน (config/access) — อ่านได้เฉพาะพนักงาน · config/probe ใช้เช็กว่าเครื่องนี้เป็นพนักงานไหม
+    match /config/{doc} {
+      allow read: if staff();
+      allow create, update: if staff() && doc == 'access'
+        && request.resource.data.keys().hasOnly(['code', 'at'])
+        && request.resource.data.code is string
+        && request.resource.data.code.size() >= 4 && request.resource.data.code.size() <= 40;
+      allow delete: if staff() && doc == 'access';
     }
 
     // ตรวจรูปแบบออเดอร์คร่าวๆ กันข้อมูลพัง
