@@ -48,13 +48,24 @@ python -m http.server 5500 --bind 127.0.0.1
 - ร้านข้าวขาหมู: http://127.0.0.1:5500/#khaomoo
 - ร้านก๋วยเตี๋ยว: http://127.0.0.1:5500/#noodle และหน้านักเรียน http://127.0.0.1:5500/order.html#noodle
 
-## ตั้งค่า Firebase (ทำครั้งเดียว ~15 นาที)
+## ของจริงที่ตั้งไว้แล้ว (2026-11-04)
+
+- เว็บแอป: https://nopekka.github.io/school-shop/ (GitHub Pages จาก repo นี้ · push `main` = อัปเดตเว็บ)
+- หน้านักเรียน/QR ของร้านก๋วยเตี๋ยว: https://nopekka.github.io/school-shop/order.html?s=noodle
+- Firebase โปรเจกต์ `school-shop-25ef3` (ฐานข้อมูลสิงคโปร์ `asia-southeast1`, Email/Password + Anonymous เปิดแล้ว, กฎความปลอดภัย deploy แล้ว)
+- ค่าใน `firebase-config.js` คือค่าจริงของโปรเจกต์นี้ (apiKey ของเว็บแอป Firebase ไม่ใช่ความลับ)
+- อัปเดตกฎ: แก้ `firestore.rules` แล้วรัน `firebase deploy --only firestore:rules --project school-shop-25ef3`
+
+## ตั้งค่า Firebase (ทำครั้งเดียว ~15 นาที — ของโปรเจกต์นี้ทำเสร็จแล้ว เก็บไว้เผื่อย้ายร้าน)
 
 1. https://console.firebase.google.com → **Add project** (ไม่ต้องเปิด Google Analytics)
 2. **Authentication** → Get started → แท็บ **Sign-in method** → เปิด **Email/Password** (พนักงาน)
    และ **Anonymous** (นักเรียนที่สแกนสั่งเอง — ถ้ายังไม่มีร้านไหนเปิดสั่งผ่านมือถือ ข้ามได้)
 3. **Authentication** → แท็บ **Users** → **Add user** ใส่อีเมล + รหัสผ่านของร้าน
-   - **สำคัญ:** แท็บ **Settings** → **User actions** → เอาติ๊ก **Enable create (sign-up)** ออก แล้ว Save
+   - **สำคัญ:** ต้องเพิ่มอีเมลนั้นในรายชื่อพนักงานด้วย: **Firestore Database** → Start collection → Collection ID `staff`
+     → Document ID = อีเมลตัวพิมพ์เล็กทั้งหมด (เช่น `owner@gmail.com`) → ใส่ field อะไรก็ได้ 1 ตัว (เช่น `name` = เจ้าของร้าน) → Save
+     (กฎใน `firestore.rules` ให้เฉพาะอีเมลในรายชื่อนี้เป็นพนักงาน — ต่อให้ใครสมัครบัญชีอีเมลเองผ่าน API ก็เข้าข้อมูลร้านไม่ได้)
+   - เพิ่มพนักงานคนอื่น: เพิ่มบัญชีใน Users + เพิ่มเอกสารใน `staff` · เอาออก: ลบเอกสารใน `staff`
 4. **Firestore Database** → Create database → location `asia-southeast1` (สิงคโปร์) → **production mode**
 5. **Firestore Database** → แท็บ **Rules** → วางเนื้อหาไฟล์ `firestore.rules` ทั้งหมด → **Publish**
 6. ⚙ **Project settings** → Your apps → ไอคอนเว็บ `</>` → Register → คัดลอกค่า `firebaseConfig` มาวางใน `firebase-config.js`
