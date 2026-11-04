@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#F4F4F6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#09090B" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="สั่งอาหารจากมือถือ จ่ายพร้อมเพย์ รับที่หน้าร้าน">
+  <title>สั่งอาหาร</title>
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" crossorigin href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="student.css">
+  <script src="vendor/qrcode.js"></script>
+  <script type="module" src="student.js"></script>
+</head>
+<body class="student">
+  <div id="boot" class="boot" role="status">
+    <span class="spinner" aria-hidden="true"></span>
+    <p id="bootMsg">กำลังโหลดเมนู…</p>
+  </div>
+
+  <div id="app" class="s-app" hidden>
+    <main id="view"></main>
+  </div>
+
+  <div class="cartbar" id="cartBar" hidden></div>
+
+  <div class="sheet-wrap" id="sheet" hidden>
+    <div class="scrim" data-act="close-sheet"></div>
+    <div class="sheet" id="sheetBody" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"></div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <noscript><p class="boot">ต้องเปิด JavaScript เพื่อสั่งอาหาร</p></noscript>
+</body>
+</html>

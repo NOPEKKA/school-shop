@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#131316" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="จดออเดอร์และยอดขายร้านในโรงเรียน ใช้งานได้แม้ไม่มีเน็ต">
+  <title>จดออเดอร์</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="จดออเดอร์">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" crossorigin href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="staff.css">
+  <script src="vendor/qrcode.js"></script>
+  <script type="module" src="app.js"></script>
+</head>
+<body class="staff">
+  <div id="boot" class="boot" role="status">
+    <span class="spinner" aria-hidden="true"></span>
+    <p id="bootMsg">กำลังเปิด…</p>
+  </div>
+
+  <!-- เข้าสู่ระบบ (เฉพาะตอนต่อ Firebase) -->
+  <section id="login" class="center-page" hidden>
+    <form id="loginForm" class="login-card card" autocomplete="on">
+      <div class="login-brand">
+        <img src="icons/icon.svg" alt="" width="44" height="44">
+        <div><h1>จดออเดอร์</h1><p class="muted">สำหรับพนักงานร้าน</p></div>
+      </div>
+      <label class="field"><span>อีเมล</span>
+        <input id="loginEmail" type="email" inputmode="email" autocomplete="username" required>
+      </label>
+      <label class="field"><span>รหัสผ่าน</span>
+        <input id="loginPass" type="password" autocomplete="current-password" required minlength="6">
+      </label>
+      <button class="btn primary lg wide" id="loginBtn" type="submit">เข้าสู่ระบบ</button>
+      <p class="login-err" id="loginErr" role="alert"></p>
+      <p class="hint-text">เข้าครั้งเดียว เครื่องนี้จะจำไว้ ไม่ต้องเข้าซ้ำทุกวัน</p>
+    </form>
+  </section>
+
+  <!-- เลือกร้านของเครื่องนี้ -->
+  <section id="picker" class="center-page" hidden></section>
+
+  <!-- ตัวแอป -->
+  <div id="shell" class="shell" hidden>
+    <header class="topbar" id="topbar"></header>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <main id="main">
+      <section class="screen order" id="scr-order" data-screen="order">
+        <div class="edit-banner" id="editBanner" hidden></div>
+        <div class="ticket" id="ticket" aria-label="รายการในใบนี้"></div>
+        <div class="deck" id="deck" aria-label="ตัวเลือกของรายการที่เลือก"></div>
+        <div class="menu-grid" id="menuGrid" aria-label="เมนู"></div>
+        <div class="savebar" id="saveBar"></div>
+      </section>
+      <section class="screen scroll" id="scr-queue" data-screen="queue" hidden></section>
+      <section class="screen scroll" id="scr-summary" data-screen="summary" hidden></section>
+      <section class="screen scroll" id="scr-settings" data-screen="settings" hidden></section>
+      <section class="screen scroll" id="scr-poster" data-screen="poster" hidden></section>
+    </main>
+
+    <nav class="tabbar" aria-label="เมนูหลัก">
+      <button class="tab" type="button" data-act="go" data-to="order">
+        <span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-note"/></svg></span><span id="tabOrder">จดออเดอร์</span>
+      </button>
+      <button class="tab" type="button" data-act="go" data-to="queue">
+        <span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-queue"/></svg><b class="tab-badge" id="badge" hidden>0</b></span>
+        <span id="tabQueue">คิว</span>
+      </button>
+      <button class="tab" type="button" data-act="go" data-to="summary">
+        <span class="tab-ic"><svg class="ic" aria-hidden="true"><use href="#i-chart"/></svg></span><span>สรุปยอด</span>
+      </button>
+    </nav>
+  </div>
+
+  <noscript><p class="boot">ต้องเปิด JavaScript เพื่อใช้งาน</p></noscript>
+</body>
+</html>
