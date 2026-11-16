@@ -1,14 +1,15 @@
 // shops.js — รายชื่อร้านและข้อมูลตั้งต้นของแต่ละร้าน (ร้านในโรงเรียน)
+// ตอนนี้มีร้านเดียว: ข้าวขาหมู (จดเฉยๆ) ร้านก๋วยเตี๋ยวเอาออกแล้ว (2026-11-16)
 // เพิ่มร้านใหม่: เพิ่ม 1 รายการใน SHOPS แล้วเพิ่มเมนูตั้งต้นใน seedFor()
 // ข้อมูลจริงของแต่ละร้านอยู่ที่ shops/{id} ใน Firestore (ตั้งค่า + เมนู + ออเดอร์ + ยอดรายวัน แยกกันทั้งหมด)
 //
 // แบบของร้าน (settings.mode)
 //   'record'  = จดเฉยๆ   : กดเมนูแล้วกด "เงินสด"/"โอน" บันทึกเป็นยอดขายทันที ไม่มีคิว
 //   'kitchen' = จดเพื่อทำ : มีคิวรอทำ แตะเสร็จทีละรายการ และเปิดให้นักเรียนสแกนสั่งเองได้
+//   เลือกแบบ 'kitchen' ได้เฉพาะร้านที่ตั้ง kitchenOk: true (ตอนนี้ไม่มีร้านไหน) ร้านอื่นเป็นแบบจดเฉยๆ ตลอด
 
 export const SHOPS = [
-  { id: 'khaomoo', name: 'ข้าวขาหมู หมูแดง หมูกรอบ', short: 'ข้าวขาหมู', mark: 'ข', color: '#B42318', note: 'จดเฉยๆ · ทดลองก่อน' },
-  { id: 'noodle', name: 'ก๋วยเตี๋ยว', short: 'ก๋วยเตี๋ยว', mark: 'ก', color: '#0E7490', note: 'จดเพื่อทำ · มีคิว' },
+  { id: 'khaomoo', name: 'ข้าวขาหมู หมูแดง หมูกรอบ', short: 'ข้าวขาหมู', mark: 'ข', color: '#B42318', note: 'จดเฉยๆ', kitchenOk: false },
 ];
 
 export function shopById(id) {
@@ -27,46 +28,21 @@ const RICE_OPTIONS = [
 ];
 
 const KHAOMOO_MENU = [
-  { id: 'k01', name: 'ข้าวขาหมู', price: 50, color: 'brown', desc: '' },
-  { id: 'k02', name: 'ข้าวหมูแดง', price: 50, color: 'red', desc: '' },
-  { id: 'k03', name: 'ข้าวไก่ทอด ซอสมะขาม', price: 50, color: 'amber', desc: '' },
-  { id: 'k04', name: 'ข้าวหมูแดง +หมูกรอบ', price: 55, color: 'tomato', desc: '' },
-  { id: 'k05', name: 'ข้าวหมูกรอบ', price: 50, color: 'gold', desc: '' },
-  { id: 'k06', name: 'ข้าวไก่ย่าง', price: 50, color: 'coffee', desc: '' },
+  { id: 'k01', name: 'ข้าวขาหมู', price: 50, color: 'red', desc: '' },
+  { id: 'k02', name: 'ข้าวหมูแดง', price: 50, color: 'cyan', desc: '' },
+  { id: 'k03', name: 'ข้าวไก่ทอด ซอสมะขาม', price: 50, color: 'yellow', desc: '' },
+  { id: 'k04', name: 'ข้าวหมูแดง +หมูกรอบ', price: 55, color: 'green', desc: '' },
+  { id: 'k05', name: 'ข้าวหมูกรอบ', price: 50, color: 'pink', desc: '' },
+  { id: 'k06', name: 'ข้าวไก่ย่าง', price: 50, color: 'purple', desc: '' },
 ].map((m, i) => ({ ...m, category: 'ข้าว', options: clone(RICE_OPTIONS), active: true, sortOrder: (i + 1) * 10 }));
 
-// ---------- ร้านก๋วยเตี๋ยว (เมนูชุดเดิมจากแอปเวอร์ชันแรก) ----------
-
-const NOODLE_OPTIONS = [
-  { name: 'เส้น', key: true, multi: false, def: 0, choices: [
-    { name: 'เส้นเล็ก', price: 0 }, { name: 'เส้นใหญ่', price: 0 }, { name: 'เส้นหมี่', price: 0 }, { name: 'บะหมี่', price: 0 },
-  ] },
-  { name: 'น้ำ/แห้ง', multi: false, def: 0, choices: [{ name: 'น้ำ', price: 0 }, { name: 'แห้ง', price: 0 }] },
-  { name: 'ขนาด', multi: false, def: 0, choices: [{ name: 'ธรรมดา', price: 0 }, { name: 'พิเศษ', price: 10 }] },
-  { name: 'ท็อปปิ้ง', multi: true, def: 0, choices: [
-    { name: 'เพิ่มเครื่อง', price: 15 }, { name: 'เพิ่มลูกชิ้น', price: 10 }, { name: 'ไข่ต้ม', price: 10 }, { name: 'กากหมู', price: 5 },
-  ] },
-];
-const soupOnly = () => clone(NOODLE_OPTIONS).filter((g) => g.name !== 'เส้น' && g.name !== 'น้ำ/แห้ง');
-
-const NOODLE_MENU = [
-  { id: 'm01', name: 'หมูน้ำใส', price: 50, color: 'gold', desc: 'หมูสด หมูสับ ลูกชิ้น' },
-  { id: 'm02', name: 'หมูน้ำตก', price: 50, color: 'maroon', desc: 'น้ำซุปเข้มข้น' },
-  { id: 'm03', name: 'ต้มยำหมู', price: 55, color: 'tomato', desc: 'ต้มยำน้ำข้น' },
-  { id: 'm04', name: 'เนื้อน้ำใส', price: 60, color: 'gold', desc: 'เนื้อสด เนื้อเปื่อย' },
-  { id: 'm05', name: 'เนื้อน้ำตก', price: 60, color: 'maroon', desc: '' },
-  { id: 'm06', name: 'ลูกชิ้นน้ำใส', price: 45, color: 'gold', desc: '' },
-].map((m, i) => ({ ...m, category: 'ก๋วยเตี๋ยว', options: clone(NOODLE_OPTIONS), active: true, sortOrder: (i + 1) * 10 }))
-  .concat([
-    { id: 'm07', name: 'เกาเหลาหมู', price: 50, color: 'slate', category: 'ก๋วยเตี๋ยว', desc: 'ไม่ใส่เส้น', options: soupOnly(), active: true, sortOrder: 70 },
-    { id: 'm08', name: 'น้ำเปล่า', price: 10, color: 'cyan', category: 'เครื่องดื่ม', desc: '', options: [], active: true, sortOrder: 80 },
-    { id: 'm09', name: 'ชาเย็น', price: 25, color: 'amber', category: 'เครื่องดื่ม', desc: '', options: [], active: true, sortOrder: 90 },
-  ]);
+/** สีเดิมของเมนูตั้งต้น (ก่อน 2026-11-16) — ใช้ย้ายสีเมนูที่ยังไม่เคยถูกแก้ไปเป็นชุดสีใหม่ครั้งเดียว */
+export const LEGACY_SEED_COLORS = { k01: 'brown', k02: 'red', k03: 'amber', k04: 'tomato', k05: 'gold', k06: 'coffee' };
+export const PALETTE_V = 2;
 
 /** ชุดตัวเลือกมาตรฐานที่ใช้ในหน้าแก้เมนู */
 export const OPTION_PRESETS = [
   { id: 'rice', label: 'ชุดข้าว (พิเศษ/ไข่)', groups: RICE_OPTIONS },
-  { id: 'noodle', label: 'ชุดก๋วยเตี๋ยว', groups: NOODLE_OPTIONS },
 ];
 export function presetGroups(id) {
   return clone(OPTION_PRESETS.find((p) => p.id === id)?.groups || []);
@@ -88,17 +64,12 @@ export function seedFor(id) {
   if (id === 'khaomoo') {
     return {
       settings: {
-        ...base, mode: 'record', takeaway: false, qrOrdering: false, qrOpen: false,
+        ...base, mode: 'record', takeaway: false, qrOrdering: false, qrOpen: false, paletteV: PALETTE_V,
         quickNotes: ['แยกน้ำราด', 'ราดน้ำเยอะ', 'ซอสแยก', 'เนื้อล้วน', 'ไม่เอาหนัง', 'ไม่เอาผัก'],
       },
       menu: clone(KHAOMOO_MENU),
     };
   }
-  return {
-    settings: {
-      ...base, mode: 'kitchen', takeaway: true, qrOrdering: true, qrOpen: true,
-      quickNotes: ['ไม่ผัก', 'ไม่งอก', 'ไม่ชูรส', 'ไม่พริก', 'ใส่ถุงแยก'],
-    },
-    menu: clone(NOODLE_MENU),
-  };
+  // ร้านที่ไม่รู้จัก: เปิดเป็นร้านจดเฉยๆ เมนูว่าง
+  return { settings: { ...base, mode: 'record', takeaway: false, qrOrdering: false, qrOpen: false, paletteV: PALETTE_V, quickNotes: [] }, menu: [] };
 }

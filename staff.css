@@ -181,26 +181,27 @@ main { position: relative; min-height: 0; }
 .menu-grid { flex: 0 1 auto; min-height: 150px; overflow-y: auto; overscroll-behavior: contain; padding: 1px 1px 2px; }
 .tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: minmax(66px, auto); gap: 7px; }
 .mbtn {
-  --tile: #946200;
+  --tile: #FFC400; --tile-ink: #14110A;
   position: relative; min-width: 0;
   display: flex; flex-direction: column; justify-content: space-between; gap: 4px;
   padding: 9px 10px 8px 11px; text-align: left;
   border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--tile) 26%, var(--line));
-  background: color-mix(in srgb, var(--tile) 8%, var(--surface));
-  color: var(--fg); box-shadow: var(--shadow-xs);
-  transition: transform .08s, box-shadow .15s, border-color .15s;
+  border: 1px solid color-mix(in srgb, var(--tile) 72%, #000);
+  background: var(--tile);
+  color: var(--tile-ink);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--tile) 62%, #000), 0 5px 10px -6px color-mix(in srgb, var(--tile) 70%, #000);
+  transition: transform .08s, box-shadow .15s;
   -webkit-user-select: none; user-select: none;
 }
-.mbtn:active { transform: scale(.97); }
-.mname { font-size: 15px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; padding-right: 12px; }
+.mbtn:active { transform: translateY(1px) scale(.98); box-shadow: 0 1px 0 color-mix(in srgb, var(--tile) 62%, #000); }
+.mname { font-size: 15px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; padding-right: 12px; color: inherit; }
 .mname .w { display: inline-block; max-width: 100%; }
-.mprice { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--fg-2); }
-.mprice::before { content: ""; width: 8px; height: 8px; border-radius: 3px; background: var(--tile); flex: none; }
-.mbtn.in { border-color: var(--tile); box-shadow: inset 0 0 0 1px var(--tile), var(--shadow-sm); }
+.mprice { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 600; color: inherit; opacity: .9; }
+/* เมนูที่เลือกอยู่: วงขอบหนาตัดกับพื้นหลัง เห็นได้ทั้งโหมดสว่างและมืด */
+.mbtn.in { outline: 3px solid var(--fg); outline-offset: 2px; }
 .mqty {
   position: absolute; top: 6px; right: 6px; min-width: 22px; height: 22px; padding: 0 6px;
-  border-radius: 11px; background: var(--tile); color: #fff;
+  border-radius: 11px; background: var(--tile-ink); color: var(--tile);
   font-size: 12.5px; font-weight: 700; line-height: 22px; text-align: center; font-variant-numeric: tabular-nums;
 }
 .mbtn.pop { animation: pop .24s ease; }

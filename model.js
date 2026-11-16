@@ -411,41 +411,52 @@ export function ordersToCSV(orders) {
 }
 
 // ---------- สีประจำเมนู ----------
-// ใช้เป็นสีพื้นอ่อนของปุ่มเมนู + จุดสี ช่วยให้จำตำแหน่งปุ่มได้เร็ว (ทุกสีเข้มพอให้ตัวอักษรขาวอ่านชัด)
+// สีทึบสดๆ ต่างโทนกันชัดเจน เพื่อให้แยกปุ่มได้ในพริบตา (สีตัวอักษรเลือกให้อัตโนมัติจากความสว่าง: tileInk)
 
 export const TILE_COLORS = [
-  { id: 'brown', name: 'พะโล้', hex: '#8A4B1F' },
-  { id: 'red', name: 'หมูแดง', hex: '#B42318' },
-  { id: 'amber', name: 'หมูกรอบ', hex: '#B45309' },
-  { id: 'gold', name: 'ทอง', hex: '#946200' },
-  { id: 'maroon', name: 'น้ำตก', hex: '#7F1D1D' },
-  { id: 'tomato', name: 'ส้ม', hex: '#C2410C' },
-  { id: 'pink', name: 'ชมพู', hex: '#BE185D' },
-  { id: 'green', name: 'เขียว', hex: '#2F7D32' },
-  { id: 'cyan', name: 'ฟ้า', hex: '#0E7490' },
-  { id: 'coffee', name: 'กาแฟ', hex: '#5B3A29' },
-  { id: 'purple', name: 'ม่วง', hex: '#7E22CE' },
+  { id: 'red', name: 'แดง', hex: '#D93A20' },
+  { id: 'orange', name: 'ส้ม', hex: '#FF8A00' },
+  { id: 'yellow', name: 'เหลือง', hex: '#FFC400' },
+  { id: 'green', name: 'เขียว', hex: '#1FA34A' },
+  { id: 'cyan', name: 'ฟ้าเขียว', hex: '#00A3B8' },
+  { id: 'blue', name: 'น้ำเงิน', hex: '#2563EB' },
+  { id: 'purple', name: 'ม่วง', hex: '#8B3DFF' },
+  { id: 'pink', name: 'ชมพู', hex: '#FF3D8B' },
+  { id: 'brown', name: 'น้ำตาล', hex: '#8A4B1F' },
   { id: 'slate', name: 'เทา', hex: '#475569' },
 ];
+// รหัสสีรุ่นเก่า (เมนูที่บันทึกไว้ก่อนเปลี่ยนชุดสี) -> สีใหม่ที่ใกล้เคียง
+const LEGACY_COLOR = { amber: 'orange', gold: 'yellow', maroon: 'red', tomato: 'orange', coffee: 'brown' };
+
+const lum = (hex) => {
+  const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+};
+/** สีตัวอักษรบนพื้นสีนี้: ขาวหรือเกือบดำ แล้วแต่แบบไหนคอนทราสต์มากกว่า */
+export function inkFor(hex) {
+  const L = lum(hex);
+  return (1.05 / (L + 0.05)) >= ((L + 0.05) / 0.056) ? '#FFFFFF' : '#14110A';
+}
 
 /** สีของเมนู: ใช้ที่ตั้งไว้ ถ้าไม่มีเดาจากชื่อ/หมวด */
 export function tileColor(menu) {
   const pick = (id) => TILE_COLORS.find((c) => c.id === id).hex;
-  const set = TILE_COLORS.find((c) => c.id === menu?.color);
+  const id = LEGACY_COLOR[menu?.color] || menu?.color;
+  const set = TILE_COLORS.find((c) => c.id === id);
   if (set) return set.hex;
   const n = String(menu?.name || '');
   if (/ขาหมู|พะโล้/.test(n)) return pick('brown');
   if (/หมูแดง/.test(n)) return pick('red');
-  if (/หมูกรอบ/.test(n)) return pick('amber');
-  if (/น้ำตก/.test(n)) return pick('maroon');
-  if (/ต้มยำ/.test(n)) return pick('tomato');
-  if (/เย็นตาโฟ/.test(n)) return pick('pink');
+  if (/หมูกรอบ/.test(n)) return pick('orange');
+  if (/ไก่ทอด|มะขาม/.test(n)) return pick('blue');
+  if (/ไก่ย่าง/.test(n)) return pick('green');
   if (/น้ำเปล่า|น้ำแข็ง|โซดา/.test(n)) return pick('cyan');
-  if (/กาแฟ|โอเลี้ยง|โกโก้/.test(n)) return pick('coffee');
-  if (/ชา/.test(n)) return pick('amber');
-  if (/เครื่องดื่ม/.test(menu?.category || '')) return pick('cyan');
-  return pick('gold');
+  if (/กาแฟ|โอเลี้ยง|โกโก้/.test(n)) return pick('brown');
+  if (/ชา/.test(n)) return pick('yellow');
+  return pick('slate');
 }
+export const tileInk = (menu) => inkFor(tileColor(menu));
 
 export function groupByCategory(list, bySort) {
   const map = new Map();

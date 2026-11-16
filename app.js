@@ -3,11 +3,11 @@
 
 import * as data from './data.js';
 import * as M from './model.js';
-import { SHOPS, shopById, seedFor, presetGroups, OPTION_PRESETS } from './shops.js';
+import { SHOPS, shopById, seedFor, presetGroups, OPTION_PRESETS, LEGACY_SEED_COLORS, PALETTE_V } from './shops.js';
 import { injectSprite, icon } from './icons.js';
 import { qrSVG } from './qr.js';
 
-const APP_VERSION = '4.3.0';
+const APP_VERSION = '4.4.0';
 
 // ---------- ตัวช่วยเล็กๆ ----------
 const $ = (s, r = document) => r.querySelector(s);
@@ -69,7 +69,8 @@ S.cart = emptyCart();
 
 // ---------- แบบของร้าน ----------
 // record = จดเฉยๆ (กดเมนู → เงินสด/โอน = บันทึกยอดขายทันที) · kitchen = จดเพื่อทำ (มีคิว แตะเสร็จ)
-const isRecord = () => S.settings.mode === 'record';
+const kitchenOk = () => !!shopById(S.shop)?.kitchenOk;
+const isRecord = () => !kitchenOk() || S.settings.mode === 'record';
 const qrOn = () => !isRecord() && S.settings.qrOrdering !== false;
 const takeawayOn = () => !isRecord() && S.settings.takeaway !== false;
 
@@ -97,6 +98,7 @@ async function boot() {
       $('#login').hidden = true;
       const want = new URLSearchParams(location.search).get('shop') || decodeURIComponent(location.hash.slice(1)) || pref('shop', '');
       if (shopById(want)) openShop(want);
+      else if (SHOPS.length === 1) openShop(SHOPS[0].id);
       else showPicker();
     } else {
       stopSession();
@@ -106,7 +108,7 @@ async function boot() {
     }
   });
   setInterval(tick, 20000);
-  // เปลี่ยนร้านจากลิงก์ (#khaomoo / #noodle) โดยไม่ต้องโหลดหน้าใหม่
+  // เปลี่ยนร้านจากลิงก์ (#khaomoo) โดยไม่ต้องโหลดหน้าใหม่
   addEventListener('hashchange', () => {
     const id = decodeURIComponent(location.hash.slice(1));
     if (S.user && shopById(id) && id !== S.shop) openShop(id);
@@ -148,6 +150,7 @@ function openShop(id) {
   S.seenQr = null;
   S.seenClaim = null;
   S.seeded = false;
+  S.paletteChecked = false;
   S.menuDraft = null;
   S.sum = { range: 'day', at: M.thaiDateKey(), past: null, days: null, loading: false, req: 0 };
   S.openDone = new Set();
@@ -167,6 +170,7 @@ function startSession() {
   unsubs.push(data.watchShop((s, meta) => {
     if (s) {
       S.settings = { ...seedFor(S.shop).settings, ...s };
+      S.paletteV = +s.paletteV || 0;
       S.shopLoaded = true;
     } else if (!meta.fromCache && !S.seeded) {
       // ร้านใหม่ (เซิร์ฟเวอร์ยืนยันว่ายังไม่มีข้อมูล) -> ใส่ตั้งค่าและเมนูตั้งต้น
@@ -174,11 +178,13 @@ function startSession() {
       const seed = seedFor(S.shop);
       data.seedShop({ ...seed.settings, createdAt: Date.now() }, seed.menu);
     }
+    migratePalette();
     renderAll();
   }));
   unsubs.push(data.watchMenu((list) => {
     S.menu = list.sort(M.bySort);
     S.menuLoaded = true;
+    migratePalette();
     renderAll();
   }));
   if (S.mode !== 'demo') {
@@ -188,6 +194,21 @@ function startSession() {
     }));
   }
   subscribeToday();
+}
+// ย้ายสีเมนูตั้งต้นเป็นชุดสีใหม่ครั้งเดียว: เปลี่ยนเฉพาะเมนูที่ยังเป็นสีเดิมของระบบ (ที่ร้านแก้สีเองแล้วไม่แตะ) ราคา/ชื่อไม่เปลี่ยน
+function migratePalette() {
+  if (S.paletteChecked || !S.shopLoaded || !S.menuLoaded) return;
+  S.paletteChecked = true;
+  if ((+S.paletteV || 0) >= PALETTE_V) return;
+  const fresh = Object.fromEntries(seedFor(S.shop).menu.map((x) => [x.id, x.color]));
+  for (const m of S.menu) {
+    if (LEGACY_SEED_COLORS[m.id] && m.color === LEGACY_SEED_COLORS[m.id] && fresh[m.id]) {
+      const { id, ...rest } = m;
+      data.saveMenuItem({ id, ...rest, color: fresh[m.id] });
+    }
+  }
+  S.paletteV = PALETTE_V;
+  data.saveShop({ paletteV: PALETTE_V });
 }
 function subscribeToday() {
   unsubOrders?.();
@@ -473,7 +494,7 @@ function renderDeck() {
     el.innerHTML = `<div class="deck-idle">${icon('info')}<span>${S.cart.lines.length
       ? 'แตะรายการในใบด้านบน เพื่อเปลี่ยนตัวเลือก (เช่น พิเศษ)'
       : isRecord()
-        ? 'แตะเมนู 1 ครั้ง = 1 จาน แตะซ้ำ = เพิ่มจาน<br>แล้วกด <b>เงินสด</b> หรือ <b>โอน</b> = บันทึกการขาย'
+        ? 'แตะเมนูเพื่อเลือกจาน · แตะอีกเมนู = เปลี่ยนเมนู (ไม่บวกเพิ่ม)<br>เพิ่มจานด้วยปุ่ม <b>+</b> แล้วกด <b>เงินสด</b> หรือ <b>โอน</b> = บันทึกการขาย'
         : 'แตะเมนู 1 ครั้ง = 1 ที่ ได้ตัวเลือกปกติทันที<br>แตะซ้ำ = เพิ่มจำนวน'}</span></div>`;
     return;
   }
@@ -523,7 +544,7 @@ function renderMenuGrid() {
   const qty = {};
   for (const x of S.cart.lines) qty[x.menuId] = (qty[x.menuId] || 0) + x.qty;
   g.innerHTML = '<div class="tiles">' + items.map((m) => `
-    <button class="mbtn${qty[m.id] ? ' in' : ''}" type="button" data-act="add" data-id="${esc(m.id)}" style="--tile:${M.tileColor(m)}">
+    <button class="mbtn${qty[m.id] ? ' in' : ''}" type="button" data-act="add" data-id="${esc(m.id)}" style="--tile:${M.tileColor(m)};--tile-ink:${M.tileInk(m)}">
       <span class="mname">${nameHtml(m.name)}</span>
       <span class="mprice tnum">${M.fmtMoney(m.price)}</span>
       ${qty[m.id] ? `<span class="mqty">${qty[m.id]}</span>` : ''}
@@ -636,9 +657,52 @@ function commitCart() {
   renderOrder();
 }
 
+// เปลี่ยนเมนูของจานที่เลือกอยู่ แต่เก็บจำนวน หมายเหตุ และตัวเลือกที่ใช้กับเมนูใหม่ได้ (เช่น พิเศษ, ใส่ไข่)
+function carryOptions(menu, prev) {
+  let opts = M.defaultOptions(menu);
+  (menu.options || []).forEach((g, gi) => (g.choices || []).forEach((c, ci) => {
+    if (M.isChosen(prev || [], g.name, c.name) && !M.isChosen(opts, g.name, c.name)) opts = M.setOption(menu, opts, gi, ci);
+  }));
+  return opts;
+}
+
+// ร้านจดเฉยๆ: แตะเมนู = เลือกจานนั้น · แตะเมนูอื่น = เปลี่ยนเป็นเมนูนั้น · แตะเมนูเดิมซ้ำ = ไม่เปลี่ยน (เพิ่มจานด้วยปุ่ม +)
+function pickDish(m) {
+  const cart = S.cart;
+  const cur = selLine() || cart.lines[cart.lines.length - 1];
+  if (!cur) {
+    pushUndo();
+    const line = { key: uid(), menuId: m.id, name: m.name, basePrice: +m.price || 0, qty: 1, options: M.defaultOptions(m), note: '', served: false };
+    cart.lines.push(line);
+    cart.sel = line.key;
+    buzz();
+    commitCart();
+    return;
+  }
+  if (cur.menuId === m.id) { cart.sel = cur.key; buzz(); renderOrder(); return; }
+  pushUndo();
+  cur.menuId = m.id;
+  cur.name = m.name;
+  cur.basePrice = +m.price || 0;
+  cur.options = carryOptions(m, cur.options);
+  cart.sel = cur.key;
+  // ใบเก่าที่มีหลายรายการ: ถ้าเปลี่ยนแล้วซ้ำกับอีกรายการ ให้รวมกัน
+  const twin = cart.lines.find((l) => l !== cur && !l.served && M.lineKey(l) === M.lineKey(cur));
+  if (twin && !cur.served) { twin.qty += cur.qty; cart.lines.splice(cart.lines.indexOf(cur), 1); cart.sel = twin.key; }
+  buzz();
+  commitCart();
+}
+
 function addMenu(id) {
   const m = S.menu.find((x) => x.id === id);
   if (!m) return;
+  if (isRecord()) {
+    pickDish(m);
+    const b = $(`.mbtn[data-id="${CSS.escape(id)}"]`);
+    b?.classList.add('pop');
+    setTimeout(() => b?.classList.remove('pop'), 260);
+    return;
+  }
   pushUndo();
   const line = { key: uid(), menuId: m.id, name: m.name, basePrice: +m.price || 0, qty: 1, options: M.defaultOptions(m), note: '', served: false };
   const k = M.lineKey(line);
@@ -1259,10 +1323,10 @@ function renderSettings() {
         <div class="shop-id">
           <span class="mark lg" style="--mark:${esc(st.color || '#1D5BD8')}">${esc(st.mark || 'ร')}</span>
           <span class="set-txt"><b class="shop-name">${nameHtml(st.name)}</b><small>เครื่องนี้ใช้กับร้านนี้</small></span>
-          <button class="btn sm" type="button" data-act="switch-shop">${icon('swap')}เปลี่ยนร้าน</button>
+          ${SHOPS.length > 1 ? `<button class="btn sm" type="button" data-act="switch-shop">${icon('swap')}เปลี่ยนร้าน</button>` : ''}
         </div>
         <label class="field"><span>ชื่อร้าน</span><input id="setName" type="text" data-set="name" maxlength="40" value="${esc(st.name)}"></label>
-        <div class="field"><span>แบบของร้าน</span>
+        ${kitchenOk() ? `        <div class="field"><span>แบบของร้าน</span>
           <div class="seg mode" role="group" aria-label="แบบของร้าน">
             <button class="${isRecord() ? 'on' : ''}" type="button" data-act="shop-mode" data-v="record" aria-pressed="${isRecord()}">จดเฉยๆ</button>
             <button class="${!isRecord() ? 'on' : ''}" type="button" data-act="shop-mode" data-v="kitchen" aria-pressed="${!isRecord()}">จดเพื่อทำ (มีคิว)</button>
@@ -1270,7 +1334,7 @@ function renderSettings() {
           <p class="hint-text">${isRecord()
             ? 'กดเมนูแล้วกด เงินสด/โอน = บันทึกการขายทันที ไม่มีคิว เหมาะกับร้านที่ตักให้เลย อยากรู้แค่ว่าขายอะไรไปเท่าไหร่'
             : 'ออเดอร์เข้าคิวรอทำ แตะเสร็จทีละรายการ เหมาะกับร้านที่ต้องทำทีละชาม และเปิดให้นักเรียนสั่งเองผ่านมือถือได้'}</p>
-        </div>
+        </div>`  : ''}
         ${isRecord() ? '' : row('มีให้เลือก "กลับบ้าน"', st.takeaway !== false ? 'หัวใบมีปุ่ม ทานที่ร้าน / กลับบ้าน' : 'ทานที่ร้านอย่างเดียว', sw(st.takeaway !== false, 'takeaway', 'มีให้เลือกกลับบ้าน'))}
         ${isRecord() ? '' : row('เตือนเมื่อออเดอร์ค้างเกิน', 'การ์ดในหน้าคิวจะเป็นสีแดง', `<div class="stepper">
           <button type="button" data-act="overdue" data-d="-1" aria-label="ลด">${icon('minus')}</button>
@@ -1409,7 +1473,7 @@ function openMenuEditor(id) {
   const m = id && S.menu.find((x) => x.id === id);
   S.menuDraft = m
     ? JSON.parse(JSON.stringify({ id: m.id, name: m.name, price: m.price, category: m.category || '', desc: m.desc || '', color: m.color || '', options: m.options || [], active: m.active !== false, sortOrder: m.sortOrder ?? 0 }))
-    : { name: '', price: '', category: S.menu[0]?.category || 'ข้าว', desc: '', color: '', options: presetGroups(S.shop === 'noodle' ? 'noodle' : 'rice'), active: true };
+    : { name: '', price: '', category: S.menu[0]?.category || 'ข้าว', desc: '', color: '', options: presetGroups('rice'), active: true };
   renderSettings();
   $('#menuEditor')?.scrollIntoView({ block: 'nearest' });
 }
