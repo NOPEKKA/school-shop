@@ -189,7 +189,7 @@ main { position: relative; min-height: 0; }
   border: 1px solid color-mix(in srgb, var(--tile) 72%, #000);
   background: var(--tile);
   color: var(--tile-ink);
-  box-shadow: 0 2px 0 color-mix(in srgb, var(--tile) 62%, #000), 0 5px 10px -6px color-mix(in srgb, var(--tile) 70%, #000);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--tile) 70%, #000), 0 3px 8px -6px color-mix(in srgb, var(--tile) 70%, #000);
   transition: transform .08s, box-shadow .15s;
   -webkit-user-select: none; user-select: none;
 }

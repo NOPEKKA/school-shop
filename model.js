@@ -411,19 +411,19 @@ export function ordersToCSV(orders) {
 }
 
 // ---------- สีประจำเมนู ----------
-// สีทึบสดๆ ต่างโทนกันชัดเจน เพื่อให้แยกปุ่มได้ในพริบตา (สีตัวอักษรเลือกให้อัตโนมัติจากความสว่าง: tileInk)
+// สีทึบโทนกลาง ต่างโทนกันชัดเจน (ไม่สดจัด) เพื่อให้แยกปุ่มได้ในพริบตา (สีตัวอักษรเลือกให้อัตโนมัติจากความสว่าง: tileInk)
 
 export const TILE_COLORS = [
-  { id: 'red', name: 'แดง', hex: '#D93A20' },
-  { id: 'orange', name: 'ส้ม', hex: '#FF8A00' },
-  { id: 'yellow', name: 'เหลือง', hex: '#FFC400' },
-  { id: 'green', name: 'เขียว', hex: '#1FA34A' },
-  { id: 'cyan', name: 'ฟ้าเขียว', hex: '#00A3B8' },
-  { id: 'blue', name: 'น้ำเงิน', hex: '#2563EB' },
-  { id: 'purple', name: 'ม่วง', hex: '#8B3DFF' },
-  { id: 'pink', name: 'ชมพู', hex: '#FF3D8B' },
-  { id: 'brown', name: 'น้ำตาล', hex: '#8A4B1F' },
-  { id: 'slate', name: 'เทา', hex: '#475569' },
+  { id: 'red', name: 'แดง', hex: '#B5493B' },
+  { id: 'orange', name: 'ส้ม', hex: '#CF7A3A' },
+  { id: 'yellow', name: 'เหลือง', hex: '#C9A046' },
+  { id: 'green', name: 'เขียว', hex: '#347F55' },
+  { id: 'cyan', name: 'ฟ้าเขียว', hex: '#2F7F8C' },
+  { id: 'blue', name: 'น้ำเงิน', hex: '#3D6FC4' },
+  { id: 'purple', name: 'ม่วง', hex: '#7B62BF' },
+  { id: 'pink', name: 'ชมพู', hex: '#B24A72' },
+  { id: 'brown', name: 'น้ำตาล', hex: '#8A5A3A' },
+  { id: 'slate', name: 'เทา', hex: '#5B6779' },
 ];
 // รหัสสีรุ่นเก่า (เมนูที่บันทึกไว้ก่อนเปลี่ยนชุดสี) -> สีใหม่ที่ใกล้เคียง
 const LEGACY_COLOR = { amber: 'orange', gold: 'yellow', maroon: 'red', tomato: 'orange', coffee: 'brown' };

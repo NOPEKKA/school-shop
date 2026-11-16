@@ -7,7 +7,7 @@ import { SHOPS, shopById, seedFor, presetGroups, OPTION_PRESETS, LEGACY_SEED_COL
 import { injectSprite, icon } from './icons.js';
 import { qrSVG } from './qr.js';
 
-const APP_VERSION = '4.4.0';
+const APP_VERSION = '4.4.1';
 
 // ---------- ตัวช่วยเล็กๆ ----------
 const $ = (s, r = document) => r.querySelector(s);
