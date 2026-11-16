@@ -7,7 +7,7 @@ import { SHOPS, shopById, seedFor, presetGroups, OPTION_PRESETS, LEGACY_SEED_COL
 import { injectSprite, icon } from './icons.js';
 import { qrSVG } from './qr.js';
 
-const APP_VERSION = '4.4.1';
+const APP_VERSION = '4.4.2';
 
 // ---------- ตัวช่วยเล็กๆ ----------
 const $ = (s, r = document) => r.querySelector(s);
@@ -490,6 +490,10 @@ function deckLayout(menu) {
 function renderDeck() {
   const el = $('#deck');
   const l = selLine();
+  if (!l && !S.cart.lines.length && isRecord()) {
+    el.innerHTML = '<div class="deck-idle"></div>'; // ใบว่าง: ไม่มีข้อความ (คงความสูงไว้ ปุ่มข้างล่างจะไม่ขยับ)
+    return;
+  }
   if (!l) {
     el.innerHTML = `<div class="deck-idle">${icon('info')}<span>${S.cart.lines.length
       ? 'แตะรายการในใบด้านบน เพื่อเปลี่ยนตัวเลือก (เช่น พิเศษ)'

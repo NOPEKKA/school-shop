@@ -2,7 +2,7 @@
 // อัปเดตไฟล์แอปเมื่อไหร่ ให้เปลี่ยน VERSION ด้วย เครื่องร้านจะโหลดของใหม่เอง (มีผลตอนเปิดแอปครั้งถัดไป)
 // ข้อมูลออเดอร์ไม่ได้อยู่ที่นี่ — Firestore เก็บเองใน IndexedDB
 
-const VERSION = 'shop-v4.4.1';
+const VERSION = 'shop-v4.4.2';
 const SDK = '12.19.0'; // ต้องตรงกับ data-firestore.js
 
 const APP_FILES = [
